@@ -17,7 +17,10 @@
                     <div class="panel-options">
                         <ul class="nav nav-tabs">
                             <li class="active">
-                                <a href="{% url 'assets:asset-detail' pk=asset.id %}" class="text-center"><i class="fa fa-laptop"></i> {% trans 'Asset detail' %} </a>
+                                <a href="#asset-detail" class="text-center" data-toggle="tab"><i class="fa fa-laptop"></i> {% trans 'Asset detail' %} </a>
+                            </li>
+                            <li>
+                                <a href="#asset-operations" data-toggle="tab"> {% trans 'Asset operations' %} </a>
                             </li>
                             {% if user.is_superuser %}
                             <li class="pull-right">
@@ -32,6 +35,7 @@
                         </ul>
                     </div>
                     <div class="tab-content">
+                    <div class="tab-pane fade in active" id="asset-detail">
                         <div class="col-sm-7" style="padding-left: 0">
                             <div class="ibox float-e-margins">
                                 <div class="ibox-title">
@@ -230,12 +234,148 @@
                         {% endif %}
                         </div>
                     </div>
+                    <div class="tab-pane fade" id="asset-operations">
+                        <div class="col-sm-7" style="padding-left: 0">
+                            <div class="ibox float-e-margins">
+                                <div class="ibox-title">
+                                    <span class="label"><b>{{ asset.hostname }}</b></span>
+                                    <div class="ibox-tools">
+                                        <a class="collapse-link">
+                                            <i class="fa fa-chevron-up"></i>
+                                        </a>
+                                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                            <i class="fa fa-wrench"></i>
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-user">
+                                        </ul>
+                                        <a class="close-link">
+                                            <i class="fa fa-times"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="ibox-content">
+                                    <div>
+                                        <a class="btn btn-sm btn-primary"> {% trans "Create operation" %} </a>
+                                    </div>
+                                    <table class="table">
+                                        <tbody>
+                                        <tr class="no-borders-tr">
+                                            <td width="20%">操作记录</td>
+                                            <td><b>xxoo</b></td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% if user.is_superuser %}
+                        <div class="col-sm-5" style="padding-left: 0;padding-right: 0">
+                            <div class="panel panel-primary">
+                                <div class="panel-heading">
+                                    <i class="fa fa-info-circle"></i> {% trans 'Quick modify' %}
+                                </div>
+                                <div class="panel-body">
+                                    <table class="table">
+                                        <tbody>
+                                        <tr class="no-borders-tr">
+                                          <td width="50%">{% trans 'Active' %}:</td>
+                                            <td>
+                                              <span class="pull-right">
+                                                  <div class="switch">
+                                                      <div class="onoffswitch">
+                                                          <input type="checkbox" {% if asset.is_active %} checked {% endif %}  class="onoffswitch-checkbox" id="is_active">
+                                                          <label class="onoffswitch-label" for="is_active">
+                                                              <span class="onoffswitch-inner"></span>
+                                                              <span class="onoffswitch-switch"></span>
+                                                          </label>
+                                                      </div>
+                                                  </div>
+                                              </span>
+                                          </td>
+                                        </tr>
+                                        {% if asset.is_unixlike %}
+                                        <tr>
+                                            <td>{% trans 'Refresh hardware' %}:</td>
+                                            <td>
+                                                <span class="pull-right">
+                                                    <button type="button" class="btn btn-primary btn-xs" id="btn_refresh_asset" style="width: 54px">{% trans 'Refresh' %}</button>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>{% trans 'Test connective' %}:</td>
+                                            <td>
+                                                <span class="pull-right">
+                                                    <button type="button" class="btn btn-primary btn-xs" id="btn-test-is-alive" style="width: 54px">{% trans 'Test' %}</button>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <i class="fa fa-info-circle"></i> {% trans 'Nodes' %}
+                                </div>
+                                <div class="panel-body">
+                                    <table class="table group_edit" id="add-asset2group">
+                                        <tbody>
+                                        <form>
+                                            <tr>
+                                                <td colspan="2" class="no-borders">
+                                                    <select data-placeholder="{% trans 'Nodes' %}" id="groups_selected" class="select2 groups" style="width: 100%" multiple="" tabindex="4">
+                                                        {% for node in nodes_remain %}
+                                                        <option value="{{ node.id }}" id="opt_{{ node.id }}" >{{ node }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" class="no-borders">
+                                                    <button type="button" class="btn btn-info btn-sm" id="btn-update-nodes">{% trans 'Confirm' %}</button>
+                                                </td>
+                                            </tr>
+                                        </form>
+
+                                        {% for node in asset.nodes.all %}
+                                        <tr>
+                                          <td ><b class="bdg_node" data-gid={{ node.id }}>{{ node }}</b></td>
+                                          <td>
+                                              <button class="btn btn-danger pull-right btn-xs btn-leave-node" type="button"><i class="fa fa-minus"></i></button>
+                                          </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="panel panel-warning">
+                                <div class="panel-heading">
+                                    <i class="fa fa-info-circle"></i> {% trans 'Labels' %}
+                                </div>
+                                <div class="panel-body">
+                                    <ul class="tag-list" style="padding: 0">
+                                        {% for label in asset.labels.all %}
+                                            <li ><a href=""><i class="fa fa-tag"></i> {{ label.name }}:{{ label.value }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        {% endif %}
+                        </div>
+                    </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 {% endblock %}
 {% block custom_foot_js %}
+<script src="{% static "js/bootstrap.min.js" %}"></script>
 <script>
 jumpserver.nodes_selected = {};
 function updateAssetNodes(nodes) {
