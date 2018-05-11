@@ -1362,6 +1362,9 @@ msgstr "密码认证"
 msgid "Public key auth"
 msgstr "密钥认证"
 
+msgid "Web terminal enable"
+msgstr "开启Web Terminal"
+
 #: common/forms.py:159 common/templates/common/terminal_setting.html:63
 #: terminal/forms.py:30 terminal/models.py:20
 msgid "Command storage"
