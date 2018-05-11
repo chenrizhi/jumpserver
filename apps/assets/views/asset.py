@@ -62,6 +62,7 @@ class UserAssetListView(LoginRequiredMixin, TemplateView):
         context = {
             'action': _('My assets'),
             'system_users': SystemUser.objects.all(),
+            'terminal_web_terminal_enable': settings.TERMINAL_WEB_TERMINAL_ENABLE
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)

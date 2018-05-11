@@ -155,6 +155,9 @@ class TerminalSettingForm(BaseForm):
     TERMINAL_PUBLIC_KEY_AUTH = forms.BooleanField(
         initial=True, required=False, label=_("Public key auth")
     )
+    TERMINAL_WEB_TERMINAL_ENABLE = forms.BooleanField(
+        initial=True, required=False, label=_("Web terminal enable")
+    )
     TERMINAL_COMMAND_STORAGE = DictField(
         label=_("Command storage"), help_text=_(
             "Set terminal storage setting, `default` is the using as default,"
