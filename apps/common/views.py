@@ -1,10 +1,11 @@
 
 from django.core.cache import cache
 from django.views.generic import TemplateView, View, DetailView
-from django.shortcuts import render, redirect, Http404, reverse
+from django.shortcuts import render, redirect, Http404, reverse, HttpResponse
 from django.contrib import messages
 from django.utils.translation import ugettext as _
 from django.conf import settings
+import json, re, hashlib, base64
 
 from .forms import EmailSettingForm, LDAPSettingForm, BasicSettingForm, \
     TerminalSettingForm
@@ -127,7 +128,33 @@ class ToolsView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = {
+            'app': _('Settings'),
+            'action': _('Tools'),
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
+
+    def post(self,request):
+        print(request.body)
+        mac = request.POST.get('mac', '').upper()
+        resp = {
+            'status': False,
+            'msg': '不能为空',
+        }
+        if not mac:
+            return HttpResponse(json.dumps(resp))
+        def _pwdlen(mac):
+            field = mac.split(':')
+            sum = 0
+            for f in field:
+                sum += int(f,16)
+            return sum%9+8
+        if not re.match('([0-9A-F]{2}:){5}[0-9A-F]{2}', mac):
+            resp['msg'] = '格式错误'
+            return HttpResponse(json.dumps(resp))
+        else:
+            sha = hashlib.sha256((mac+"\n").encode()).hexdigest()
+            resp['status'] = True
+            resp['msg'] = base64.b64encode(sha.encode())[0:_pwdlen(mac)].decode()
+            return HttpResponse(json.dumps(resp))
 
