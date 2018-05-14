@@ -11,6 +11,7 @@ from .forms import EmailSettingForm, LDAPSettingForm, BasicSettingForm, \
     TerminalSettingForm
 from .mixins import AdminUserRequiredMixin
 from .signals import ldap_auth_enable
+from audits.models import NTXPasswordDecodeLog
 
 
 class BasicSettingView(AdminUserRequiredMixin, TemplateView):
@@ -135,7 +136,6 @@ class ToolsView(TemplateView):
         return super().get_context_data(**kwargs)
 
     def post(self,request):
-        print(request.body)
         mac = request.POST.get('mac', '').upper()
         resp = {
             'status': False,
@@ -155,6 +155,17 @@ class ToolsView(TemplateView):
         else:
             sha = hashlib.sha256((mac+"\n").encode()).hexdigest()
             resp['status'] = True
-            resp['msg'] = base64.b64encode(sha.encode())[0:_pwdlen(mac)].decode()
+            pwd = base64.b64encode(sha.encode())[0:_pwdlen(mac)].decode()
+            resp['msg'] = pwd
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')
+            if x_forwarded_for and x_forwarded_for[0]:
+                remote_addr = x_forwarded_for[0]
+            else:
+                remote_addr = request.META.get('REMOTE_ADDR', '')
+            NTXPasswordDecodeLog.objects.create(
+                user=request.user.username,
+                remote_addr=remote_addr,
+                mac=mac,
+                Password=pwd,
+            )
             return HttpResponse(json.dumps(resp))
-
