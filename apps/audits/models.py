@@ -14,3 +14,12 @@ class FTPLog(models.Model):
     filename = models.CharField(max_length=1024, verbose_name=_("Filename"))
     is_success = models.BooleanField(default=True, verbose_name=_("Success"))
     date_start = models.DateTimeField(auto_now_add=True)
+
+
+class NTXPasswordDecodeLog(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    user = models.CharField(max_length=128, verbose_name=_('User'))
+    remote_addr = models.CharField(max_length=15, verbose_name=_("Remote addr"), blank=True, null=True)
+    mac = models.CharField(max_length=17, verbose_name=_('MAC'))
+    Password = models.CharField(max_length=32, verbose_name=_('Password'))
+    date = models.DateTimeField(auto_now_add=True)

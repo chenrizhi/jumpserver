@@ -11,4 +11,5 @@ app_name = "audits"
 
 urlpatterns = [
     url(r'^ftp-log/$', views.FTPLogListView.as_view(), name='ftp-log-list'),
+    url(r'^ntx-password-decode-log/$', views.NTXPasswordDecodeLogListView.as_view(), name='ntx-password-decode-log-list'),
 ]
