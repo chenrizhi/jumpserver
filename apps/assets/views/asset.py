@@ -28,7 +28,7 @@ from common.mixins import JSONResponseMixin
 from common.utils import get_object_or_none, get_logger, is_uuid
 from common.const import create_success_msg, update_success_msg
 from .. import forms
-from ..models import Asset, AdminUser, SystemUser, Label, Node, Domain
+from ..models import Asset, AdminUser, SystemUser, Label, Node, Domain, AssetLog
 from ..hands import AdminUserRequiredMixin
 
 
@@ -36,6 +36,7 @@ __all__ = [
     'AssetListView', 'AssetCreateView', 'AssetUpdateView',
     'UserAssetListView', 'AssetBulkUpdateView', 'AssetDetailView',
     'AssetDeleteView', 'AssetExportView', 'BulkImportAssetView',
+    'AddAssetLogView',
 ]
 logger = get_logger(__file__)
 
@@ -194,10 +195,12 @@ class AssetDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         nodes_remain = Node.objects.exclude(assets=self.object)
+        asset_logs = AssetLog.objects.filter(asset=self.object).order_by('-date_created')
         context = {
             'app': _('Assets'),
             'action': _('Asset detail'),
             'nodes_remain': nodes_remain,
+            'asset_logs': asset_logs,
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
@@ -344,3 +347,21 @@ class BulkImportAssetView(AdminUserRequiredMixin, JSONResponseMixin, FormView):
         }
         return self.render_json_response(data)
 
+
+class AddAssetLogView(View):
+    def post(self, request, *args, **kwargs):
+        resp = {
+            'status': False,
+            'msg': '不能为空',
+        }
+        content = request.POST.get('content')
+        print(request)
+        print(args, '----', kwargs)
+        if content:
+            AssetLog.objects.create(
+                asset_id=kwargs['pk'],
+                content=content,
+            )
+            resp['status'] = True
+            resp['msg'] = 'success'
+        return HttpResponse(json.dumps(resp))
