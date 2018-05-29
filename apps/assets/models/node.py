@@ -3,6 +3,7 @@
 import uuid
 
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -65,19 +66,34 @@ class Node(models.Model):
             key__regex=r'^{}:[0-9]+$'.format(self.key)
         )
 
+    def get_children_with_self(self):
+        return self.__class__.objects.filter(
+            key__regex=r'^{0}$|^{0}:[0-9]+$'.format(self.key)
+        )
+
     def get_all_children(self):
         return self.__class__.objects.filter(
             key__startswith='{}:'.format(self.key)
         )
 
+    def get_all_children_with_self(self):
+        return self.__class__.objects.filter(
+            key__regex=r'^{0}$|^{0}:'.format(self.key)
+        )
+
     def get_family(self):
-        children = list(self.get_all_children())
-        children.append(self)
-        return children
+        ancestor = self.ancestor
+        children = self.get_all_children()
+        return [*tuple(ancestor), self, *tuple(children)]
 
     def get_assets(self):
         from .asset import Asset
-        assets = Asset.objects.filter(nodes__id=self.id)
+        if self.is_root():
+            assets = Asset.objects.filter(
+                Q(nodes__id=self.id) | Q(nodes__isnull=True)
+            )
+        else:
+            assets = Asset.objects.filter(nodes__id=self.id)
         return assets
 
     def get_valid_assets(self):
@@ -88,17 +104,9 @@ class Node(models.Model):
         if self.is_root():
             assets = Asset.objects.all()
         else:
-            nodes = self.get_family()
+            nodes = self.get_all_children_with_self()
             assets = Asset.objects.filter(nodes__in=nodes).distinct()
         return assets
-
-    def get_current_assets(self):
-        from .asset import Asset
-        assets = Asset.objects.filter(nodes=self).distinct()
-        return assets
-
-    def has_assets(self):
-        return self.get_all_assets()
 
     def get_all_valid_assets(self):
         return self.get_all_assets().valid()
@@ -108,18 +116,15 @@ class Node(models.Model):
 
     @property
     def parent(self):
-        if self.key == "0":
-            return self.__class__.root()
-        elif not self.key.startswith("0"):
+        if self.key == "0" or not self.key.startswith("0"):
             return self.__class__.root()
 
         parent_key = ":".join(self.key.split(":")[:-1])
         try:
             parent = self.__class__.objects.get(key=parent_key)
+            return parent
         except Node.DoesNotExist:
             return self.__class__.root()
-        else:
-            return parent
 
     @parent.setter
     def parent(self, parent):
@@ -127,14 +132,20 @@ class Node(models.Model):
 
     @property
     def ancestor(self):
-        if self.parent == self.__class__.root():
+        _key = self.key.split(':')
+        ancestor_keys = []
+
+        if self.is_root():
             return [self.__class__.root()]
-        else:
-            return [self.parent, *tuple(self.parent.ancestor)]
+
+        for i in range(len(_key)-1):
+            _key.pop()
+            ancestor_keys.append(':'.join(_key))
+        return self.__class__.objects.filter(key__in=ancestor_keys)
 
     @property
-    def ancestor_with_node(self):
-        ancestor = self.ancestor
+    def ancestor_with_self(self):
+        ancestor = list(self.ancestor)
         ancestor.insert(0, self)
         return ancestor
 
