@@ -11,8 +11,7 @@ from django.db.models import Q
 
 from common.mixins import IDInFilterMixin
 from common.utils import get_logger
-from ..hands import IsSuperUser, IsValidUser, IsSuperUserOrAppUser, \
-    NodePermissionUtil
+from ..hands import IsSuperUser, IsValidUser, IsSuperUserOrAppUser
 from ..models import Asset, SystemUser, AdminUser, Node
 from .. import serializers
 from ..tasks import update_asset_hardware_info_manual, \
@@ -22,7 +21,7 @@ from ..utils import LabelFilter
 
 logger = get_logger(__file__)
 __all__ = [
-    'AssetViewSet', 'UserAssetListView', 'AssetListUpdateApi',
+    'AssetViewSet', 'AssetListUpdateApi',
     'AssetRefreshHardwareApi', 'AssetAdminUserTestApi'
 ]
 
@@ -40,7 +39,9 @@ class AssetViewSet(IDInFilterMixin, LabelFilter, BulkModelViewSet):
     permission_classes = (IsSuperUserOrAppUser,)
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset()\
+            .prefetch_related('labels', 'nodes')\
+            .select_related('admin_user')
         admin_user_id = self.request.query_params.get('admin_user_id')
         node_id = self.request.query_params.get("node_id")
         show_current_asset = self.request.query_params.get("show_current_asset")
@@ -50,34 +51,22 @@ class AssetViewSet(IDInFilterMixin, LabelFilter, BulkModelViewSet):
             queryset = queryset.filter(admin_user=admin_user)
 
         if node_id and show_current_asset:
-            queryset = queryset.filter(
-                Q(nodes=node_id) | Q(nodes__isnull=True)
-            ).distinct()
+            node = get_object_or_404(Node, id=node_id)
+            if node.is_root():
+                queryset = queryset.filter(
+                    Q(nodes=node_id) | Q(nodes__isnull=True)
+                ).distinct()
+            else:
+                queryset = queryset.filter(nodes=node).distinct()
+
         if node_id and not show_current_asset:
             node = get_object_or_404(Node, id=node_id)
-            if not node.is_root():
-                queryset = queryset.filter(
-                    Q(nodes__key__regex='^{}(:[0-9]+)*$'.format(node.key)) |
-                    Q(nodes__isnull=True),
-                ).distinct()
+            if node.is_root():
+                queryset = Asset.objects.all()
             else:
                 queryset = queryset.filter(
                     nodes__key__regex='^{}(:[0-9]+)*$'.format(node.key),
                 ).distinct()
-
-        return queryset
-
-
-class UserAssetListView(generics.ListAPIView):
-    queryset = Asset.objects.all()
-    serializer_class = serializers.AssetSerializer
-    permission_classes = (IsValidUser,)
-
-    def get_queryset(self):
-        assets_granted = NodePermissionUtil.get_user_assets(self.request.user).keys()
-        queryset = self.queryset.filter(
-            id__in=[asset.id for asset in assets_granted]
-        )
         return queryset
 
 
