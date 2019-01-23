@@ -85,6 +85,9 @@ function initTable() {
                 var update_btn = '<a href="{% url "assets:domain-gateway-update" pk=DEFAULT_PK %}" class="btn btn-xs btn-info">{% trans "Update" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
                 var del_btn = '<a class="btn btn-xs btn-danger m-l-xs btn-delete" data-uid="{{ DEFAULT_PK }}">{% trans "Delete" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
                 var test_btn = '<a class="btn btn-xs btn-warning m-l-xs btn-test" data-uid="{{ DEFAULT_PK }}">{% trans "Test connection" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                if(rowData.protocol === 'rdp'){
+                    test_btn = '<a class="btn btn-xs btn-warning m-l-xs btn-test" disabled data-uid="{{ DEFAULT_PK }}">{% trans "Test connection" %}</a>'.replace('{{ DEFAULT_PK }}', cellData);
+                }
                 $(td).html(update_btn + test_btn + del_btn)
              }}
         ],
@@ -95,7 +98,7 @@ function initTable() {
         ],
         op_html: $('#actions').html()
     };
-    jumpserver.initDataTable(options);
+    jumpserver.initServerSideDataTable(options);
 }
 $(document).ready(function(){
     initTable();
@@ -117,10 +120,9 @@ $(document).ready(function(){
     APIUpdateAttr({
         url: the_url,
         method: "GET",
-        success_message: "可连接",
-        fail_message: "连接失败"
+        success_message: "{% trans 'Can be connected' %}",
+        fail_message: "{% trans 'The connection fails' %}"
     })
-
-})
+});
 </script>
 {% endblock %}

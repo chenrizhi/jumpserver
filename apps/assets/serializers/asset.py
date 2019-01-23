@@ -4,55 +4,44 @@ from rest_framework import serializers
 from rest_framework_bulk.serializers import BulkListSerializer
 
 from common.mixins import BulkSerializerMixin
-from ..models import Asset, Node
+from ..models import Asset
 from .system_user import AssetSystemUserSerializer
 
 __all__ = [
     'AssetSerializer', 'AssetGrantedSerializer', 'MyAssetGrantedSerializer',
+    'AssetAsNodeSerializer', 'AssetSimpleSerializer',
 ]
-
-
-class NodeTMPSerializer(serializers.ModelSerializer):
-    parent = serializers.SerializerMethodField()
-    assets_amount = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Node
-        fields = ['id', 'key', 'value', 'parent', 'assets_amount', 'is_node']
-        list_serializer_class = BulkListSerializer
-
-    @staticmethod
-    def get_parent(obj):
-        return obj.parent.id
-
-    @staticmethod
-    def get_assets_amount(obj):
-        return obj.get_all_assets().count()
-
-    def get_fields(self):
-        fields = super().get_fields()
-        field = fields["key"]
-        field.required = False
-        return fields
 
 
 class AssetSerializer(BulkSerializerMixin, serializers.ModelSerializer):
     """
     资产的数据结构
     """
-
     class Meta:
         model = Asset
         list_serializer_class = BulkListSerializer
         fields = '__all__'
-        validators = []  # If not set to [], partial bulk update will be error
+        validators = []
+
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        """ Perform necessary eager loading of data. """
+        queryset = queryset.prefetch_related('labels', 'nodes')\
+            .select_related('admin_user')
+        return queryset
 
     def get_field_names(self, declared_fields, info):
         fields = super().get_field_names(declared_fields, info)
         fields.extend([
-            'hardware_info', 'is_connective',
+            'hardware_info', 'connectivity', 'org_name'
         ])
         return fields
+
+
+class AssetAsNodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = ['id', 'hostname', 'ip', 'port', 'platform', 'protocol']
 
 
 class AssetGrantedSerializer(serializers.ModelSerializer):
@@ -61,14 +50,14 @@ class AssetGrantedSerializer(serializers.ModelSerializer):
     """
     system_users_granted = AssetSystemUserSerializer(many=True, read_only=True)
     system_users_join = serializers.SerializerMethodField()
-    nodes = NodeTMPSerializer(many=True, read_only=True)
+    # nodes = NodeTMPSerializer(many=True, read_only=True)
 
     class Meta:
         model = Asset
         fields = (
             "id", "hostname", "ip", "port", "system_users_granted",
-            "is_active", "system_users_join", "os", 'domain', "nodes",
-            "platform", "comment"
+            "is_active", "system_users_join", "os", 'domain',
+            "platform", "comment", "protocol", "org_id", "org_name",
         )
 
     @staticmethod
@@ -86,6 +75,12 @@ class MyAssetGrantedSerializer(AssetGrantedSerializer):
         model = Asset
         fields = (
             "id", "hostname", "system_users_granted",
-            "is_active", "system_users_join",
-            "os", "platform", "comment",
+            "is_active", "system_users_join", "org_name",
+            "os", "platform", "comment", "org_id", "protocol"
         )
+
+
+class AssetSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = ['id', 'hostname', 'port', 'ip', 'connectivity']

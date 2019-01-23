@@ -11,15 +11,16 @@ from django.conf import settings
 
 from common.utils import get_signer, ssh_key_string_to_obj, ssh_key_gen
 from common.validators import alphanumeric
+from orgs.mixins import OrgModelMixin
 from .utils import private_key_validator
 
 signer = get_signer()
 
 
-class AssetUser(models.Model):
+class AssetUser(OrgModelMixin):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    name = models.CharField(max_length=128, unique=True, verbose_name=_('Name'))
-    username = models.CharField(max_length=32, verbose_name=_('Username'), validators=[alphanumeric])
+    name = models.CharField(max_length=128, verbose_name=_('Name'))
+    username = models.CharField(max_length=32, blank=True, verbose_name=_('Username'), validators=[alphanumeric])
     _password = models.CharField(max_length=256, blank=True, null=True, verbose_name=_('Password'))
     _private_key = models.TextField(max_length=4096, blank=True, null=True, verbose_name=_('SSH private key'), validators=[private_key_validator, ])
     _public_key = models.TextField(max_length=4096, blank=True, verbose_name=_('SSH public key'))
@@ -27,6 +28,13 @@ class AssetUser(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     created_by = models.CharField(max_length=128, null=True, verbose_name=_('Created by'))
+
+    UNREACHABLE, REACHABLE, UNKNOWN = range(0, 3)
+    CONNECTIVITY_CHOICES = (
+        (UNREACHABLE, _("Unreachable")),
+        (REACHABLE, _('Reachable')),
+        (UNKNOWN, _("Unknown")),
+    )
 
     @property
     def password(self):
@@ -104,10 +112,19 @@ class AssetUser(models.Model):
         if update_fields:
             self.save(update_fields=update_fields)
 
+    def get_auth(self, asset=None):
+        pass
+
+    def clear_auth(self):
+        self._password = ''
+        self._private_key = ''
+        self._public_key = ''
+        self.save()
+
     def auto_gen_auth(self):
         password = str(uuid.uuid4())
         private_key, public_key = ssh_key_gen(
-            username=self.username, password=password
+            username=self.username
         )
         self.set_auth(password=password,
                       private_key=private_key,

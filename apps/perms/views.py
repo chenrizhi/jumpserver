@@ -3,22 +3,20 @@
 from __future__ import unicode_literals, absolute_import
 
 from django.utils.translation import ugettext as _
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
 from django.views.generic.edit import DeleteView, SingleObjectMixin
 from django.urls import reverse_lazy
 from django.conf import settings
 
-from common.mixins import AdminUserRequiredMixin
+from common.permissions import AdminUserRequiredMixin
+from orgs.utils import current_org
 from .hands import Node, Asset, SystemUser, User, UserGroup
 from .models import AssetPermission
 from .forms import AssetPermissionForm
 
 
-class AssetPermissionListView(AdminUserRequiredMixin, ListView):
-    model = AssetPermission
+class AssetPermissionListView(AdminUserRequiredMixin, TemplateView):
     template_name = 'perms/asset_permission_list.html'
-    paginate_by = settings.DISPLAY_PER_PAGE
-    user = user_group = asset = node = system_user = q = ""
 
     def get_context_data(self, **kwargs):
         context = {
@@ -42,7 +40,7 @@ class AssetPermissionCreateView(AdminUserRequiredMixin, CreateView):
 
         if nodes_id:
             nodes_id = nodes_id.split(",")
-            nodes = Node.objects.filter(id__in=nodes_id)
+            nodes = Node.objects.filter(id__in=nodes_id).exclude(id=Node.root().id)
             form['nodes'].initial = nodes
         if assets_id:
             assets_id = assets_id.split(",")
@@ -87,7 +85,6 @@ class AssetPermissionDetailView(AdminUserRequiredMixin, DetailView):
             'system_users_remain': SystemUser.objects.exclude(
                 granted_by_permissions=self.object
             ),
-
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
@@ -104,7 +101,7 @@ class AssetPermissionUserView(AdminUserRequiredMixin,
                               ListView):
     template_name = 'perms/asset_permission_user.html'
     context_object_name = 'asset_permission'
-    paginate_by = settings.CONFIG.DISPLAY_PER_PAGE
+    paginate_by = settings.DISPLAY_PER_PAGE
     object = None
 
     def get(self, request, *args, **kwargs):
@@ -116,11 +113,13 @@ class AssetPermissionUserView(AdminUserRequiredMixin,
         return queryset
 
     def get_context_data(self, **kwargs):
+
         context = {
             'app': _('Perms'),
             'action': _('Asset permission user list'),
-            'users_remain': User.objects.exclude(asset_permissions=self.object)
-                .exclude(role=User.ROLE_APP),
+            'users_remain': current_org.get_org_users().exclude(
+                asset_permissions=self.object
+            ),
             'user_groups_remain': UserGroup.objects.exclude(
                 asset_permissions=self.object
             )
@@ -134,11 +133,11 @@ class AssetPermissionAssetView(AdminUserRequiredMixin,
                                ListView):
     template_name = 'perms/asset_permission_asset.html'
     context_object_name = 'asset_permission'
-    paginate_by = settings.CONFIG.DISPLAY_PER_PAGE
+    paginate_by = settings.DISPLAY_PER_PAGE
     object = None
 
     def get(self, request, *args, **kwargs):
-        self.object = self.get_object(queryset=AssetPermission.objects.all())
+        self.object = self.get_object(queryset = AssetPermission.objects.all())
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):

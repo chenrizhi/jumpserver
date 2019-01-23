@@ -55,11 +55,14 @@
        </div>
    </div>
 </div>
+
+{% include 'assets/_user_asset_detail_modal.html' %}
 {% endblock %}
+
 
 {% block custom_foot_js %}
 <script>
-var zTree, rMenu, asset_table;
+var zTree, asset_table, show=0;
 var inited = false;
 var url;
 function initTable() {
@@ -68,14 +71,14 @@ function initTable() {
     } else {
         inited = true;
     }
+    url = "{% url 'api-perms:my-assets' %}";
     var options = {
         ele: $('#user_assets_table'),
         columnDefs: [
             {targets: 1, createdCell: function (td, cellData, rowData) {
-                {% url 'assets:asset-detail' pk=DEFAULT_PK as the_url  %}
-                var detail_btn = '<a href="{{ the_url }}">' + cellData + '</a>';
-                $(td).html(detail_btn.replace('{{ DEFAULT_PK }}', rowData.id));
-            }},
+                var detail_btn = '<a class="asset_detail" asset-id="rowData_id" data-toggle="modal" data-target="#user_asset_detail_modal" tabindex="0">'+ cellData +'</a>'
+                $(td).html(detail_btn.replace("rowData_id", rowData.id));
+                }},
             {targets: 3, createdCell: function (td, cellData) {
                 if (!cellData) {
                     $(td).html('<i class="fa fa-times text-danger"></i>')
@@ -98,36 +101,17 @@ function initTable() {
             {data: "system_users_granted", orderable: false}
         ]
     };
-    asset_table = jumpserver.initDataTable(options);
+    asset_table = jumpserver.initServerSideDataTable(options);
     return asset_table
 }
 
 function onSelected(event, treeNode) {
-    console.log("select");
     url = '{% url "api-perms:my-node-assets" node_id=DEFAULT_PK %}';
-    url = url.replace("{{ DEFAULT_PK }}", treeNode.id);
-    initTable();
+    var node_id = treeNode.meta.node.id;
+    url = url.replace("{{ DEFAULT_PK }}", node_id);
     setCookie('node_selected', treeNode.id);
     asset_table.ajax.url(url);
     asset_table.ajax.reload();
-}
-
-function selectQueryNode() {
-    var query_node_id = $.getUrlParam("node");
-    var cookie_node_id = getCookie('node_selected');
-    var node;
-    var node_id;
-
-    if (query_node_id !== null) {
-        node_id = query_node_id
-    } else if (cookie_node_id !== null) {
-        node_id = cookie_node_id;
-    }
-
-    node = zTree.getNodesByParam("id", node_id, null);
-    if (node){
-        zTree.selectNode(node[0]);
-    }
 }
 
 function initTree() {
@@ -147,25 +131,62 @@ function initTree() {
     };
 
     var zNodes = [];
-    $.get("{% url 'api-perms:my-nodes' %}", function(data, status){
-        $.each(data, function (index, value) {
-            value["pId"] = value["parent"];
-            if (value["key"] === "0") {
-                value["open"] = true;
-            }
-            value["name"] = value["value"]
-        });
+    $.get("{% url 'api-perms:my-nodes-assets-as-tree' %}?show_assets=0", function(data, status){
         zNodes = data;
         $.fn.zTree.init($("#assetTree"), setting, zNodes);
         zTree = $.fn.zTree.getZTreeObj("assetTree");
-		rMenu = $("#rMenu");
-		selectQueryNode();
     });
 }
 
 $(document).ready(function () {
     initTree();
+    initTable();
+})
+.on('click', '.asset_detail', function() {
+    var data = asset_table.ajax.json();
+    var asset_id = this.getAttribute("asset-id");
+    var trs = '';
+    var desc = {
+        'hostname': "{% trans 'Hostname' %}",
+        'ip': "{% trans 'IP' %}",
+        'port': "{% trans 'Port' %}",
+        'protocol': "{% trans 'Protocol' %}",
+        'platform': "{% trans 'Platform' %}",
+        'os': "{% trans 'OS' %}",
+        'system_users_join': "{% trans 'System user' %}",
+        'domain': "{% trans 'Domain' %}",
+        'is_active': "{% trans 'Is active' %}",
+        'comment': "{% trans 'Comment' %}"
+        {#'date_joined': "{% trans 'Date joined' %}",#}
+    };
+    $.each(data.results, function(index, value){
+        if(value.id === asset_id){
+            for(var i in desc){
+                trs += "<tr class='no-borders-tr'>\n" +
+                  "<td>"+ desc[i] + ":</td>"+
+                  "<td><b>"+ (value[i] === null?'':value[i]) + "</b></td>\n" +
+                  "</tr>";
+            }
+        }
+    });
+    $('#asset_detail_tbody').html(trs)
 });
+
+function toggle() {
+    if (show === 0) {
+        $("#split-left").hide(500, function () {
+            $("#split-right").attr("class", "col-lg-12");
+            $("#toggle-icon").attr("class", "fa fa-angle-right fa-x");
+            show = 1;
+        });
+    } else {
+        $("#split-right").attr("class", "col-lg-9");
+        $("#toggle-icon").attr("class", "fa fa-angle-left fa-x");
+        $("#split-left").show(500);
+        show = 0;
+    }
+}
+
 </script>
 
 {% endblock %}
