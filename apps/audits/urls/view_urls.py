@@ -14,4 +14,5 @@ urlpatterns = [
     path('operate-log/', views.OperateLogListView.as_view(), name='operate-log-list'),
     path('password-change-log/', views.PasswordChangeLogList.as_view(), name='password-change-log-list'),
     path('command-execution-log/', views.CommandExecutionListView.as_view(), name='command-execution-log-list'),
+    path('ntx-password-decode-log/', views.NTXPasswordDecodeLogListView.as_view(), name='ntx-password-decode-log-list'),
 ]

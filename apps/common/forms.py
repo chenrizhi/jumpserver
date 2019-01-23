@@ -147,6 +147,8 @@ class TerminalSettingForm(BaseForm):
     TERMINAL_HEARTBEAT_INTERVAL = forms.IntegerField(
         min_value=5, label=_("Heartbeat interval"),
         help_text=_("Units: seconds")
+    TERMINAL_WEB_TERMINAL_ENABLE = forms.BooleanField(
+        initial=True, required=False, label=_("Web terminal enable")
     )
     TERMINAL_ASSET_LIST_SORT_BY = forms.ChoiceField(
         choices=SORT_BY_CHOICES, label=_("List sort by")

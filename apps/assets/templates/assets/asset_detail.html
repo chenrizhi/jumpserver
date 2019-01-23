@@ -140,6 +140,7 @@
                         </div>
                         {% if user.is_superuser or user.is_org_admin %}
                         <div class="col-sm-5" style="padding-left: 0;padding-right: 0">
+                        {% if user.is_superuser %}
                             <div class="panel panel-primary">
                                 <div class="panel-heading">
                                     <i class="fa fa-info-circle"></i> {% trans 'Quick modify' %}
@@ -236,6 +237,38 @@
                                 </div>
                             </div>
                         {% endif %}
+                            <div class="panel panel-danger">
+                                <div class="panel-heading">
+                                    <i class="fa fa-info-circle"></i> {% trans 'Asset log' %}
+                                </div>
+                                <div class="panel-body">
+                                    <table class="table group_edit" id="add-asset-log">
+                                        <tbody>
+                                        <form id="add-aseet-log-form">
+                                            <tr>
+                                                <td colspan="2" class="no-borders">
+                                                    <input id="asset-log-content" class="form-control" type="text" placeholder="{% trans 'Add some log' %}">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" class="no-borders">
+                                                    <button type="button" class="btn btn-info btn-sm" id="btn-add-asset-log">{% trans 'Add' %}</button>
+                                                </td>
+                                            </tr>
+                                        </form>
+
+                                        {% for log in asset_logs %}
+                                        <tr>
+                                          <td width="33%"><b>{{ log.date_created }}</b></td>
+                                          <td>
+                                              <b>{{ log.content }}</b>
+                                          </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -365,6 +398,26 @@ $(document).ready(function () {
         url: the_url,
         method: 'GET',
         success: success
+    });
+}).on('click', '#btn-add-asset-log', function () {
+    var content = $('#asset-log-content').val();
+    $.ajax({
+        url: '{% url "assets:add-asset-log" pk=asset.id %}',
+        type: 'post',
+        dataType:'json',
+        headers: {
+            "X-CSRFToken": '{{ csrf_token }}',
+            "Content-Type": 'application/x-www-form-urlencoded',
+        },
+        data: {
+            "content": content,
+        },
+        success: function (msg) {
+            window.location.reload();
+        },
+        error: function (msg) {
+            toastr.error(msg.msg);
+        }
     });
 })
 

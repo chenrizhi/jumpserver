@@ -31,12 +31,14 @@ from common.const import create_success_msg, update_success_msg
 from orgs.utils import current_org
 from .. import forms
 from ..models import Asset, AdminUser, SystemUser, Label, Node, Domain
+from ..models import AssetLog
 
 
 __all__ = [
     'AssetListView', 'AssetCreateView', 'AssetUpdateView',
     'UserAssetListView', 'AssetBulkUpdateView', 'AssetDetailView',
     'AssetDeleteView', 'AssetExportView', 'BulkImportAssetView',
+    'AddAssetLogView',
 ]
 logger = get_logger(__file__)
 
@@ -63,6 +65,7 @@ class UserAssetListView(LoginRequiredMixin, TemplateView):
         context = {
             'action': _('My assets'),
             'system_users': SystemUser.objects.all(),
+            'terminal_web_terminal_enable': settings.TERMINAL_WEB_TERMINAL_ENABLE
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
@@ -170,10 +173,12 @@ class AssetDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         nodes_remain = Node.objects.exclude(assets=self.object)
+        asset_logs = AssetLog.objects.filter(asset=self.object).order_by('-date_created')
         context = {
             'app': _('Assets'),
             'action': _('Asset detail'),
             'nodes_remain': nodes_remain,
+            'asset_logs': asset_logs,
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
@@ -321,3 +326,21 @@ class BulkImportAssetView(AdminUserRequiredMixin, JSONResponseMixin, FormView):
         }
         return self.render_json_response(data)
 
+
+class AddAssetLogView(View):
+    def post(self, request, *args, **kwargs):
+        resp = {
+            'status': False,
+            'msg': '不能为空',
+        }
+        content = request.POST.get('content')
+        print(request)
+        print(args, '----', kwargs)
+        if content:
+            AssetLog.objects.create(
+                asset_id=kwargs['pk'],
+                content=content,
+            )
+            resp['status'] = True
+            resp['msg'] = 'success'
+        return HttpResponse(json.dumps(resp))

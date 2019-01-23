@@ -15,6 +15,7 @@ urlpatterns = [
     path('asset/<uuid:pk>/update/', views.AssetUpdateView.as_view(), name='asset-update'),
     path('asset/<uuid:pk>/delete/', views.AssetDeleteView.as_view(), name='asset-delete'),
     path('asset/update/', views.AssetBulkUpdateView.as_view(), name='asset-bulk-update'),
+    url(r'^asset/add-asset-log/(?P<pk>[0-9a-zA-Z\-]{36})/$', views.AddAssetLogView.as_view(), name='add-asset-log'),
 
     # User asset view
     path('user-asset/', views.UserAssetListView.as_view(), name='user-asset-list'),

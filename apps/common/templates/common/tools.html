@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load bootstrap3 %}
+{% load i18n %}
+{% load common_tags %}
+
+{% block content %}
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="panel-options">
+                        <ul class="nav nav-tabs">
+                            <li class="active">
+                                <a href="#decode-password" class="text-center" data-toggle="tab"><i
+                                        class="fa fa-unlock"></i> {% trans 'Decode password' %}</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="tab-content">
+                        <div class="col-sm-12 tab-pane fade in active" id="decode-password" style="padding-left:0">
+                            <div class="ibox-content" style="border-width: 0;padding-top: 40px;">
+                                <form id="decode-password-form" class="form-horizontal">
+                                    <h3>{% trans "Ntx password decode" %}</h3>
+                                    <div class="form-group">
+                                        <label for="ntx-mac-address" class="col-md-2 control-label">
+                                            {% trans "MAC Address" %}:
+                                        </label>
+                                        <div class="col-md-9">
+                                            <input type="text" class="form-control" placeholder="{% trans "MAC Address" %}" id="ntx-mac-address" name="mac" class="col-sm-8">
+                                            <label id="decode-password-result"></label>
+                                        </div>
+                                    </div>
+                                    <div class="hr-line-dashed"></div>
+                                    <div class="form-group">
+                                        <div class="col-sm-4 col-sm-offset-2">
+                                            <button class="btn btn-default" type="reset"> {% trans 'Reset' %}</button>
+                                            <button type="button" id="submit-btn-decode-password" class="btn btn-primary">{% trans 'Submit' %}</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}
+{% block custom_foot_js %}
+    <script>
+        $(document).ready(function () {
+        })
+            .on("click", "#submit-btn-decode-password", function () {
+                var the_url = "{% url 'common:tools' %}";
+
+                function error(message) {
+                    toastr.error(message)
+                }
+
+                function success(message) {
+                    //toastr.success(message.msg)
+                    $('#decode-password-result').text(message.msg)
+                }
+
+                $.ajax({
+                    url: the_url,
+                    type: 'post',
+                    dataType:'json',
+                    headers: {
+                        "X-CSRFToken": '{{ csrf_token }}',
+                        "Content-Type": 'application/x-www-form-urlencoded',
+                    },
+                    data: $("#decode-password-form").serialize(),
+                    success: success,
+                    error: error
+                });
+            })
+    </script>
+{% endblock %}

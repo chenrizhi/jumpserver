@@ -10,6 +10,7 @@ from orgs.utils import current_org
 from ops.views import CommandExecutionListView as UserCommandExecutionListView
 from users.models import User
 from .models import FTPLog, OperateLog, PasswordChangeLog, UserLoginLog
+from .models import NTXPasswordDecodeLog
 
 
 def get_resource_type_list():
@@ -227,6 +228,43 @@ class CommandExecutionListView(UserCommandExecutionListView):
             'user_list': self.get_user_list(),
             'keyword': self.keyword,
             'user_id': self.user_id,
+        }
+        kwargs.update(context)
+        return super().get_context_data(**kwargs)
+
+
+class NTXPasswordDecodeLogListView(AdminUserRequiredMixin, DatetimeSearchMixin, ListView):
+    model = NTXPasswordDecodeLog
+    template_name = 'audits/ntx_password_decode_log_list.html'
+    paginate_by = settings.DISPLAY_PER_PAGE
+    user = mac = ''
+    date_from = date_to = None
+
+    def get_queryset(self):
+        self.queryset = super().get_queryset()
+        self.user = self.request.GET.get('user')
+        self.mac = self.request.GET.get('mac', '')
+
+        filter_kwargs = dict()
+        filter_kwargs['date__gt'] = self.date_from
+        filter_kwargs['date__lt'] = self.date_to
+        if self.user:
+            filter_kwargs['user'] = self.user
+        if self.mac:
+            filter_kwargs['mac'] = self.mac
+        if filter_kwargs:
+            self.queryset = self.queryset.filter(**filter_kwargs).order_by('-date')
+        return self.queryset
+
+    def get_context_data(self, **kwargs):
+        context = {
+            'user_list': NTXPasswordDecodeLog.objects.values_list('user', flat=True).distinct(),
+            'date_from': self.date_from,
+            'date_to': self.date_to,
+            'user': self.user,
+            'mac': self.mac,
+            "app": _("Audits"),
+            "action": _("NTX password decode log"),
         }
         kwargs.update(context)
         return super().get_context_data(**kwargs)
